@@ -7,13 +7,14 @@ import codecs
 
 file_list = []
 text_list = []
-file_list = os.listdir("C:/Users/IWASA/PycharmProjects/TwitterTest/tweetdata")
 
 
-def file_getter():
+def file_getter(path):
+    global file_list
+    file_list = os.listdir(path)
     for file_name in file_list:
         #print file_name
-        f = codecs.open(os.path.join('C:/Users/IWASA/PycharmProjects/TwitterTest/tweetdata', file_name), 'r', 'utf8', 'ignore')
+        f = codecs.open(os.path.join(path, file_name), 'r', 'utf8', 'ignore')
         text_list.append(f.read())
         f.close()
 
