@@ -7,16 +7,15 @@ import datetime as dt               # 日付取る用ライブラリ
 import wx                           # wxPython
 import webbrowser
 import os
+import threading
 
 
 def get_oauth():
     consumer_key = "h9MPYtJFCOFW05IzCvEQ"
     consumer_secret = "3DbapHU8WGcQOT4quroKVljQd6zAuA02pvmHOLn2iJM"
-    #access_token = "267076030-guPLUN6R04rBzCXSvSFZJYVVoDgFeidjDfr1t4cO"
-    #access_token_secret = "HMlEFRAQNiB5QbO1VAX7g0hDrVlmsonN60Le6pgBKQY"
 
-    if os.path.exists('accesstoken.bat'):                   # accesstoken保存済みなら読み込み
-        f = open('accesstoken.bat', 'r')
+    if os.path.exists('accesstoken.melton'):                   # accesstoken保存済みなら読み込み
+        f = open('accesstoken.melton', 'r')
         access_token = f.readline().replace('\n', '')
         access_token_secret = f.readline().replace('\n', '')
         f.close()
@@ -29,7 +28,7 @@ def get_oauth():
         webbrowser.open(auth_url)
         verifier = raw_input("PIN:")
         auth.get_access_token(verifier)
-        f = open('accesstoken.bat', 'w')
+        f = open('accesstoken.melton', 'w')
         f.write(auth.access_token.key + '\n')
         f.write(auth.access_token.secret + '\n')
         f.close()
@@ -46,14 +45,10 @@ class AbstractedlyListener(tp.StreamListener):
 
 
 class WindowSample(wx.App):
+    global twitter
     def OnInit(self):
-        self.auth = get_oauth()
-        self.twitter = tp.API(
-            auth_handler=self.auth,
-            api_root='/1.1',
-            secure=True
-        )
         self.init_frame()
+        self.twitter = twitter
         return True
 
     def init_frame(self):
@@ -82,8 +77,23 @@ class WindowSample(wx.App):
         pass
 
 
+class MainTread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+    def run(self):
+        app = WindowSample(False)
+        app.MainLoop()
+
+
 if __name__ == '__main__':
-    app = WindowSample(False)
-    #stream = tp.Stream(auth, AbstractedlyListener(), secure=True)
-    #stream.userstream()
-    app.MainLoop()
+    auth = get_oauth()
+    twitter = tp.API(
+        auth_handler=auth,
+        api_root='/1.1',
+        secure=True
+    )
+    mt = MainTread()
+    mt.start()
+    stream = tp.Stream(auth, AbstractedlyListener(), secure=True)
+    stream.userstream()
