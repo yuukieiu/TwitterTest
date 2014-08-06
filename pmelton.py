@@ -4,74 +4,72 @@ __author__ = 'IWASA'
 
 import tweepy as tp                 # TwitterAPI用ライブラリ
 import datetime as dt               # 日付取る用ライブラリ
-import wx                           # wxPython
+#import wx                           # wxPython
+import Tkinter as tk                # Tkinter
+import ScrolledText as st
+from PIL import Image, ImageTk
 import webbrowser                   # 認証ページ開く
 import os
 import threading                    # マルチスレッド
 
 
-class MeltonMain(tp.StreamListener, threading.Thread):
-    def __init__(self):
-        self.frame = MeltonFrame()
+class MeltonMain(tk.Frame):
+    def __init__(self, master=None):
+        tk.Frame.__init__(self, master)
+        self.frame = MeltonFrame(self)
+        self.master.title('Melton for Python ver.Garland')
+        self.frame.pack()
         self.twitter = MeltonAPI()
         # イベントハンドラバインド
-        self.frame.top_ctrl.tweet_btn.Bind(wx.EVT_BUTTON, self.tweet_post)
-        #threading.Thread.__init__(self)
-        #self.start()
-        self.frame.MainLoop()
 
-    def run(self):
-        stream = tp.Stream(self.twitter.auth, MeltonMain(), secure=True)
-        stream.userstream()
-
-    def on_status(self, status):
-        # TLにツイートを追加
-        pass
-
+        self.stream = tp.Stream(self.twitter.auth, MyStreamListener(), secure=True)
+        #self.stream.userstream()
+"""
     def tweet_post(self, event):
         text = self.frame.top_ctrl.text.GetValue()
         self.twitter.melton_tweet(text)
         self.frame.top_ctrl.text.SetValue("")
+"""
+
+class MyStreamListener(tp.StreamListener):
+    def on_status(self, status):
+        # TLにツイートを追加
+        status.created_at += dt.timedelta(hours=9)
+        print(u"{text}".format(text=status.text))
+        print(u"{name}({screen}) {created} via {src}\n".format(
+            name=status.author.name, screen=status.author.screen_name,
+            created=status.created_at, src=status.source))
 
 
-class MeltonFrame(wx.App):
-    def OnInit(self):
-        self.frame = wx.Frame(None, wx.ID_ANY, 'Melton for Python ver.Garland', size=(600, 400))
-        self.top_ctrl = TopCtrl(self.frame)
-        self.layout = wx.BoxSizer(wx.VERTICAL)
-        self.layout.Add(self.top_ctrl, flag=wx.GROW)
-        self.frame.Show()
-        return True
+class MeltonFrame(tk.Frame):
+    def __init__(self, master=None):
+        tk.Frame.__init__(self, master)
+        #self.top_ctrl = TopCtrl(None)
+        # topを配置する
 
 
-class TopCtrl(wx.Panel):
-    def __init__(self, frame):
-        wx.Panel.__init__(self, frame, wx.ID_ANY)
-
-        self.layout = wx.BoxSizer(wx.HORIZONTAL)
-
+class TopCtrl(tk.Frame):
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
         # アイコンセット
-        self.image = wx.Bitmap('Meltonicon.png')
-        self.icon = wx.StaticBitmap(self, -1, self.image, (0, 0))
-        self.layout.Add(self.icon, flag=wx.GROW)
+        self.image = Image.open('Meltonicon.png')
+        self.image = ImageTk.PhotoImage(self.image)
+        self.icon = tk.Label(self, image=self.image)
+        self.icon.pack(side=tk.LEFT)
         # テキストボックスセット
-        self.text = wx.TextCtrl(self, wx.ID_ANY)
-        self.layout.Add(self.text, flag=wx.GROW)
+        self.text = st.ScrolledText(self)
+        self.text.pack(fill=tk.BOTH, expand=1)
         # ツイートボタンセット
-        self.tweet_btn = wx.Button(self, wx.ID_ANY)
-        self.tweet_btn.SetLabel('Tweet!')
-        self.tweet_btn.SetToolTipString(u'ツイートします')
-        self.layout.Add(self.tweet_btn, flag=wx.GROW)
-
-        self.SetSizer(self.layout)
+        self.tweet_btn = tk.Button(self, text='Tweet!')
+        self.tweet_btn.pack()
 
 
-class TLCtrl(wx.Panel):
-    # タイムライン用クラス
+class TLCtrl(tk.Frame):
+    # タイムライン表示用クラス
     pass
 
 
-class ToolsCtrl(wx.Panel):
+class ToolsCtrl(tk.Frame):
     # 各種ボタン＋ステータス表示
     pass
 
@@ -120,4 +118,7 @@ class MeltonAPI():
 
 
 if __name__ == '__main__':
-    melton = MeltonMain()
+    m = MeltonMain()
+    m.pack()
+    m.stream.userstream()
+    m.mainloop()
